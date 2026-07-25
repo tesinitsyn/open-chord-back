@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,12 +52,6 @@ public class AdminController {
   @PutMapping("/tracks/{id}/lyrics")
   public TrackView replaceLyrics(@PathVariable UUID id, @RequestBody LyricsRequest request) {
     return catalog.replaceLyrics(id, request.lyrics());
-  }
-
-  @ExceptionHandler(IllegalArgumentException.class)
-  @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public ErrorView badRequest(IllegalArgumentException exception) {
-    return new ErrorView(exception.getMessage());
   }
 
   public record LyricsRequest(String lyrics) {}

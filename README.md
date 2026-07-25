@@ -7,6 +7,8 @@ media delivery.
 ## API
 
 - `GET /admin/` — separate React admin for uploading tracks, artwork and synchronized lyrics.
+- `POST /api/admin/imports/analyze` — stage an album folder and inspect embedded metadata.
+- `POST /api/admin/imports/{id}/commit` — atomically import the reviewed album; FLAC/WAV sources become ALAC.
 - `POST /graphql` — catalog queries and playback mutations.
 - `GET /media/tracks/{id}` — audio with single-range HTTP support.
 - `GET /media/artwork/{id}` — album artwork.
@@ -70,3 +72,11 @@ unprivileged and Compose mounts media read-only.
 
 The admin interface is intended for a trusted private network. Put the server behind
 authenticated access before exposing it to the public internet.
+
+## Smart album import
+
+The admin accepts a folder containing audio and optional cover artwork. FFprobe reads
+embedded artist, album, year, disc, track, title and duration metadata before anything
+is added to the catalog. The review screen exposes inconsistencies and allows
+corrections. On commit, lossless FLAC/WAV/AIFF sources are converted to ALAC in an M4A
+container; already compatible compressed sources are kept as-is.

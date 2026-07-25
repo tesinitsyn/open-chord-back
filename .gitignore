@@ -1,6 +1,9 @@
 HELP.md
 target/
 media/library/
+media/.imports/
+media/artwork/
+media/tracks/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
