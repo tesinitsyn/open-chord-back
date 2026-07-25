@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
+  Optional<Album> findFirstByArtistAndTitleIgnoreCase(Artist artist, String title);
+
   @EntityGraph(attributePaths = {"artist", "tracks", "tracks.lyrics"})
   @Query("select distinct a from Album a where a.id = :id")
   Optional<Album> findDetailedById(@Param("id") UUID id);

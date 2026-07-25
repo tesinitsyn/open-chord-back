@@ -142,4 +142,5 @@ class OpenChordServerApplicationTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status", is("UP")));
   }
+
 }

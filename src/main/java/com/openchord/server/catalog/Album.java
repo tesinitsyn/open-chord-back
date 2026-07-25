@@ -45,6 +45,10 @@ public class Album {
     track.attachTo(this);
   }
 
+  public void setArtworkPath(String artworkPath) {
+    this.artworkPath = artworkPath;
+  }
+
   public UUID getId() {
     return id;
   }
