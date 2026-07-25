@@ -7,8 +7,8 @@ import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 
 @Configuration
 public class GraphQlConfiguration {
-  @Bean
-  RuntimeWiringConfigurer scalarWiring() {
-    return builder -> builder.scalar(ExtendedScalars.GraphQLLong).scalar(ExtendedScalars.DateTime);
-  }
+    @Bean
+    RuntimeWiringConfigurer scalarWiring() {
+        return builder -> builder.scalar(ExtendedScalars.GraphQLLong).scalar(ExtendedScalars.DateTime);
+    }
 }

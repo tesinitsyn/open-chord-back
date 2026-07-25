@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @ConfigurationPropertiesScan
 public class OpenChordServerApplication {
 
-  public static void main(String[] args) {
-    SpringApplication.run(OpenChordServerApplication.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(OpenChordServerApplication.class, args);
+    }
 }

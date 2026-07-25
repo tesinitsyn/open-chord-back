@@ -8,48 +8,52 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "playback_events")
 public class PlaybackEvent {
-  @Id @GeneratedValue private UUID id;
+    @Id
+    @GeneratedValue
+    private UUID id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "track_id")
-  private Track track;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "track_id")
+    private Track track;
 
-  private Instant playedAt;
-  private long positionMs;
-  private boolean completed;
+    private Instant playedAt;
+    private long positionMs;
+    private boolean completed;
 
-  protected PlaybackEvent() {}
+    protected PlaybackEvent() {
+    }
 
-  public PlaybackEvent(Track track, Instant playedAt, long positionMs, boolean completed) {
-    this.track = track;
-    this.playedAt = playedAt;
-    this.positionMs = positionMs;
-    this.completed = completed;
-  }
+    public PlaybackEvent(Track track, Instant playedAt, long positionMs, boolean completed) {
+        this.track = track;
+        this.playedAt = playedAt;
+        this.positionMs = positionMs;
+        this.completed = completed;
+    }
 
-  public UUID getId() {
-    return id;
-  }
+    public UUID getId() {
+        return id;
+    }
 
-  public Track getTrack() {
-    return track;
-  }
+    public Track getTrack() {
+        return track;
+    }
 
-  public Instant getPlayedAt() {
-    return playedAt;
-  }
+    public Instant getPlayedAt() {
+        return playedAt;
+    }
 
-  public long getPositionMs() {
-    return positionMs;
-  }
+    public long getPositionMs() {
+        return positionMs;
+    }
 
-  public boolean isCompleted() {
-    return completed;
-  }
+    public boolean isCompleted() {
+        return completed;
+    }
 }

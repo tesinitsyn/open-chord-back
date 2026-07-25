@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,58 +19,61 @@ import java.util.UUID;
 @Entity
 @Table(name = "albums")
 public class Album {
-  @Id @GeneratedValue private UUID id;
-  private String title;
-  private int releaseYear;
-  private String artworkPath;
+    @Id
+    @GeneratedValue
+    private UUID id;
+    private String title;
+    private int releaseYear;
+    private String artworkPath;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "artist_id")
-  private Artist artist;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "artist_id")
+    private Artist artist;
 
-  @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
-  @OrderBy("discNumber, number")
-  private Set<Track> tracks = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("discNumber, number")
+    private Set<Track> tracks = new LinkedHashSet<>();
 
-  protected Album() {}
+    protected Album() {
+    }
 
-  public Album(String title, int releaseYear, String artworkPath, Artist artist) {
-    this.title = title;
-    this.releaseYear = releaseYear;
-    this.artworkPath = artworkPath;
-    this.artist = artist;
-  }
+    public Album(String title, int releaseYear, String artworkPath, Artist artist) {
+        this.title = title;
+        this.releaseYear = releaseYear;
+        this.artworkPath = artworkPath;
+        this.artist = artist;
+    }
 
-  public void addTrack(Track track) {
-    tracks.add(track);
-    track.attachTo(this);
-  }
+    public void addTrack(Track track) {
+        tracks.add(track);
+        track.attachTo(this);
+    }
 
-  public void setArtworkPath(String artworkPath) {
-    this.artworkPath = artworkPath;
-  }
+    public void setArtworkPath(String artworkPath) {
+        this.artworkPath = artworkPath;
+    }
 
-  public UUID getId() {
-    return id;
-  }
+    public UUID getId() {
+        return id;
+    }
 
-  public String getTitle() {
-    return title;
-  }
+    public String getTitle() {
+        return title;
+    }
 
-  public int getReleaseYear() {
-    return releaseYear;
-  }
+    public int getReleaseYear() {
+        return releaseYear;
+    }
 
-  public String getArtworkPath() {
-    return artworkPath;
-  }
+    public String getArtworkPath() {
+        return artworkPath;
+    }
 
-  public Artist getArtist() {
-    return artist;
-  }
+    public Artist getArtist() {
+        return artist;
+    }
 
-  public List<Track> getTracks() {
-    return List.copyOf(tracks);
-  }
+    public List<Track> getTracks() {
+        return List.copyOf(tracks);
+    }
 }
