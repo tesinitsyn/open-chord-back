@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(basePackages = "com.openchord.server.admin")
 public class AdminExceptionHandler {
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public AdminController.ErrorView badRequest(IllegalArgumentException exception) {
-        return new AdminController.ErrorView(exception.getMessage());
-    }
+  @ExceptionHandler(IllegalArgumentException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public AdminController.ErrorView badRequest(IllegalArgumentException exception) {
+    return new AdminController.ErrorView(exception.getMessage());
+  }
 }
