@@ -10,8 +10,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -28,7 +29,7 @@ public class Album {
 
   @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("discNumber, number")
-  private List<Track> tracks = new ArrayList<>();
+  private Set<Track> tracks = new LinkedHashSet<>();
 
   protected Album() {}
 
@@ -42,6 +43,10 @@ public class Album {
   public void addTrack(Track track) {
     tracks.add(track);
     track.attachTo(this);
+  }
+
+  public void setArtworkPath(String artworkPath) {
+    this.artworkPath = artworkPath;
   }
 
   public UUID getId() {

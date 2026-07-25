@@ -6,6 +6,9 @@ media delivery.
 
 ## API
 
+- `GET /admin/` — separate React admin for uploading tracks, artwork and synchronized lyrics.
+- `POST /api/admin/imports/analyze` — stage an album folder and inspect embedded metadata.
+- `POST /api/admin/imports/{id}/commit` — atomically import the reviewed album; FLAC/WAV sources become ALAC.
 - `POST /graphql` — catalog queries and playback mutations.
 - `GET /media/tracks/{id}` — audio with single-range HTTP support.
 - `GET /media/artwork/{id}` — album artwork.
@@ -23,9 +26,24 @@ Java 21 is required.
 docker compose up --build
 ```
 
+For an iPhone on the same network, the helper detects the host's LAN address,
+configures media URLs and prints the address to enter in the app:
+
+```sh
+./scripts/lan-up.sh
+```
+
+If automatic detection is unavailable, provide the address explicitly:
+
+```sh
+OPENCHORD_LAN_IP=192.168.1.20 ./scripts/lan-up.sh
+```
+
 Compose starts both the API and PostgreSQL 17, waits for the database health
-check, persists database state in a named volume and mounts `./media` read-only.
+check, persists database state in a named volume and mounts `./media` for catalog uploads.
 The database is also exposed on `${POSTGRES_PORT:-5432}` for local tooling.
+The first two Flyway migrations create the schema and install a small demo
+catalog whose audio is stored under `media/demo`.
 
 For development with the application running directly on the host:
 
@@ -52,6 +70,13 @@ as separate checks. Integration tests use Testcontainers against real
 PostgreSQL rather than an in-memory database emulation. The runtime image is
 unprivileged and Compose mounts media read-only.
 
-Authentication and catalog ingestion are explicit follow-up capabilities; this
-initial service establishes the client-facing catalog/playback contract and
-self-hosting runtime without claiming those features are complete.
+The admin interface is intended for a trusted private network. Put the server behind
+authenticated access before exposing it to the public internet.
+
+## Smart album import
+
+The admin accepts a folder containing audio and optional cover artwork. FFprobe reads
+embedded artist, album, year, disc, track, title and duration metadata before anything
+is added to the catalog. The review screen exposes inconsistencies and allows
+corrections. On commit, lossless FLAC/WAV/AIFF sources are converted to ALAC in an M4A
+container; already compatible compressed sources are kept as-is.

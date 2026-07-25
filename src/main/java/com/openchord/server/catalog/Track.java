@@ -60,6 +60,11 @@ public class Track {
     line.attachTo(this);
   }
 
+  public void replaceLyrics(List<LyricLine> lines) {
+    lyrics.clear();
+    lines.forEach(this::addLyricLine);
+  }
+
   public UUID getId() {
     return id;
   }
