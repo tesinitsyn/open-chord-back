@@ -1,1 +1,0 @@
-"""OpenChord server package."""
