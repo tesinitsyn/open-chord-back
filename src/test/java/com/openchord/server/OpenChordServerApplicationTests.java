@@ -24,12 +24,32 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Testcontainers
 class OpenChordServerApplicationTests {
+  @Container
+  static final PostgreSQLContainer POSTGRES =
+      new PostgreSQLContainer("postgres:17-alpine")
+          .withDatabaseName("openchord")
+          .withUsername("openchord")
+          .withPassword("openchord");
+
+  @DynamicPropertySource
+  static void configurePostgres(DynamicPropertyRegistry properties) {
+    properties.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+    properties.add("spring.datasource.username", POSTGRES::getUsername);
+    properties.add("spring.datasource.password", POSTGRES::getPassword);
+  }
+
   @Autowired private MockMvc mvc;
   @Autowired private ArtistRepository artists;
   @Autowired private AlbumRepository albums;

@@ -23,9 +23,14 @@ Java 21 is required.
 docker compose up --build
 ```
 
-For development against a local PostgreSQL:
+Compose starts both the API and PostgreSQL 17, waits for the database health
+check, persists database state in a named volume and mounts `./media` read-only.
+The database is also exposed on `${POSTGRES_PORT:-5432}` for local tooling.
+
+For development with the application running directly on the host:
 
 ```sh
+docker compose up -d database
 ./mvnw spring-boot:run
 ```
 
@@ -38,13 +43,14 @@ database are relative to `MEDIA_ROOT`; paths escaping that root are rejected.
 ```sh
 ./mvnw spotless:check
 ./mvnw -DskipTests compile
-./mvnw test
+./mvnw test # starts an isolated PostgreSQL 17 container
 docker build -t openchord-back:local .
 ```
 
 GitHub Actions reports formatting, static analysis, tests and container build
-as separate checks. The runtime image is unprivileged and Compose mounts media
-read-only.
+as separate checks. Integration tests use Testcontainers against real
+PostgreSQL rather than an in-memory database emulation. The runtime image is
+unprivileged and Compose mounts media read-only.
 
 Authentication and catalog ingestion are explicit follow-up capabilities; this
 initial service establishes the client-facing catalog/playback contract and
