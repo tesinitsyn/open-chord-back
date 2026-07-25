@@ -122,9 +122,11 @@
                 <version>2.44.5</version>
                 <configuration>
                     <java>
-                        <googleJavaFormat>
-                            <version>1.25.2</version>
-                        </googleJavaFormat>
+                        <!--
+                            Keep CI aligned with IntelliJ's built-in Java formatter.
+                            Wrapping and layout are controlled by .editorconfig; Spotless
+                            enforces only objective whitespace rules and unused imports.
+                        -->
                         <removeUnusedImports/>
                         <trimTrailingWhitespace/>
                         <endWithNewline/>
