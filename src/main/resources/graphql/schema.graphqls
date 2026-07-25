@@ -1,0 +1,60 @@
+type Query {
+    albums(search: String, limit: Int = 50, offset: Int = 0): [Album!]!
+    album(id: ID!): Album
+    recentlyPlayed(limit: Int = 10): [Album!]!
+}
+
+type Mutation {
+    recordPlayback(input: PlaybackEventInput!): PlaybackEvent!
+}
+
+type Artist {
+    id: ID!
+    name: String!
+}
+
+type Album {
+    id: ID!
+    title: String!
+    year: Int!
+    artworkUrl: String
+    artist: Artist!
+    tracks: [Track!]!
+}
+
+type Track {
+    id: ID!
+    title: String!
+    durationMs: Long!
+    discNumber: Int!
+    number: Int!
+    artistName: String!
+    albumTitle: String!
+    streamUrl: String!
+    lyrics: [LyricLine!]!
+}
+
+type LyricLine {
+    id: ID!
+    text: String!
+    startMs: Long!
+    endMs: Long!
+}
+
+input PlaybackEventInput {
+    trackId: ID!
+    positionMs: Long!
+    completed: Boolean = false
+    playedAt: DateTime
+}
+
+type PlaybackEvent {
+    id: ID!
+    trackId: ID!
+    playedAt: DateTime!
+    positionMs: Long!
+    completed: Boolean!
+}
+
+scalar Long
+scalar DateTime
