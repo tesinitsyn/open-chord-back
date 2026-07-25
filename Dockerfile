@@ -1,9 +1,11 @@
+# syntax=docker/dockerfile:1
 FROM maven:3.9.16-eclipse-temurin-21 AS builder
 WORKDIR /build
 COPY pom.xml .
 COPY .mvn/container-settings.xml .mvn/container-settings.xml
 COPY src ./src
-RUN mvn -B -s .mvn/container-settings.xml -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -s .mvn/container-settings.xml -DskipTests package
 
 FROM eclipse-temurin:21-jre
 RUN apt-get update \

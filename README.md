@@ -23,9 +23,24 @@ Java 21 is required.
 docker compose up --build
 ```
 
+For an iPhone on the same network, the helper detects the host's LAN address,
+configures media URLs and prints the address to enter in the app:
+
+```sh
+./scripts/lan-up.sh
+```
+
+If automatic detection is unavailable, provide the address explicitly:
+
+```sh
+OPENCHORD_LAN_IP=192.168.1.20 ./scripts/lan-up.sh
+```
+
 Compose starts both the API and PostgreSQL 17, waits for the database health
 check, persists database state in a named volume and mounts `./media` read-only.
 The database is also exposed on `${POSTGRES_PORT:-5432}` for local tooling.
+The first two Flyway migrations create the schema and install a small demo
+catalog whose audio is stored under `media/demo`.
 
 For development with the application running directly on the host:
 

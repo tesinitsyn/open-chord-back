@@ -24,7 +24,8 @@ public class CatalogService {
   @Transactional(readOnly = true)
   public List<Album> albums(String search, int limit, int offset) {
     String normalized = search == null || search.isBlank() ? null : search.strip();
-    List<Album> matches = albums.searchDetailed(normalized);
+    List<Album> matches =
+        normalized == null ? albums.findAllDetailed() : albums.searchDetailed(normalized);
     int from = Math.min(Math.max(offset, 0), matches.size());
     int to = Math.min(from + Math.clamp(limit, 1, 100), matches.size());
     return List.copyOf(matches.subList(from, to));

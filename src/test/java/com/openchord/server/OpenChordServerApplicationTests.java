@@ -84,12 +84,20 @@ class OpenChordServerApplicationTests {
     mvc.perform(
             post("/graphql")
                 .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"query\":\"{ albums { id } }\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.albums[0].id", is(album.getId().toString())));
+
+    mvc.perform(
+            post("/graphql")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                         {"query":"query { albums(search: \\"Aurora\\") { id title year artist { name } tracks { id durationMs streamUrl lyrics { text endMs } } } }"}
                         """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.albums[0].id", is(album.getId().toString())))
+        .andExpect(jsonPath("$.data.albums[0].tracks.length()", is(1)))
         .andExpect(jsonPath("$.data.albums[0].artist.name", is("Aurora Lines")))
         .andExpect(jsonPath("$.data.albums[0].tracks[0].lyrics[0].endMs", is(8000)));
 
