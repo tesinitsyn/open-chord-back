@@ -27,15 +27,22 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+/** Application service for direct, single-track administration workflows. */
 public class AdminCatalogService {
+    /** LRC timestamp and text matcher supporting minute:second.fraction syntax. */
     private static final Pattern LRC =
             Pattern.compile("^\\[(\\d{1,3}):(\\d{2})(?:[.:](\\d{1,3}))?]\\s*(.*)$");
 
+    /** Artist persistence port. */
     private final ArtistRepository artists;
+    /** Album persistence port. */
     private final AlbumRepository albums;
+    /** Track persistence port. */
     private final TrackRepository tracks;
+    /** Root under which managed media files are stored. */
     private final Path mediaRoot;
 
+    /** Creates the service and normalizes the configured media root once. */
     public AdminCatalogService(
             ArtistRepository artists,
             AlbumRepository albums,
@@ -48,11 +55,13 @@ public class AdminCatalogService {
     }
 
     @Transactional(readOnly = true)
+    /** Returns the editable catalog projection. */
     public List<AdminController.AlbumView> catalog() {
         return albums.findAllDetailed().stream().map(AdminController.AlbumView::from).toList();
     }
 
     @Transactional
+    /** Stores uploaded media and creates a track with any missing parent entities. */
     public AdminController.TrackView createTrack(
             String artistName,
             String albumTitle,
@@ -105,6 +114,7 @@ public class AdminCatalogService {
     }
 
     @Transactional
+    /** Parses and replaces synchronized lyrics for an existing track. */
     public AdminController.TrackView replaceLyrics(UUID id, String lyrics) {
         Track track =
                 tracks
@@ -114,6 +124,7 @@ public class AdminCatalogService {
         return AdminController.TrackView.from(tracks.saveAndFlush(track));
     }
 
+    /** Parses an LRC document and derives missing end timestamps from the next line. */
     static List<LyricLine> parseLyrics(String source, long durationMs) {
         if (source == null || source.isBlank()) {
             return List.of();
@@ -151,6 +162,7 @@ public class AdminCatalogService {
         return result;
     }
 
+    /** Stores an uploaded file below the media root after traversal validation. */
     private void store(MultipartFile file, String relativePath) throws IOException {
         if (file == null || file.isEmpty())
             throw new IllegalArgumentException("Audio file is required");
@@ -162,12 +174,14 @@ public class AdminCatalogService {
         }
     }
 
+    /** Returns a trimmed required value or raises a user-facing validation failure. */
     private static String required(String value, String label) {
         if (value == null || value.isBlank())
             throw new IllegalArgumentException(label + " is required");
         return value.strip();
     }
 
+    /** Extracts a sanitized lowercase extension including its leading period. */
     private static String extension(String filename) {
         if (filename == null) return "";
         int dot = filename.lastIndexOf('.');
@@ -176,6 +190,7 @@ public class AdminCatalogService {
                 : filename.substring(dot).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9.]", "");
     }
 
+    /** Produces a conservative filesystem-safe name component. */
     private static String slug(String value) {
         String normalized =
                 Normalizer.normalize(value, Normalizer.Form.NFD)

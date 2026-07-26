@@ -16,15 +16,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/imports")
+/** Two-phase album-import HTTP adapter: analyze first, then commit an edited draft. */
 public class AlbumImportController {
+    /** Import workflow responsible for staging, probing, conversion, and persistence. */
     private final AlbumImportService imports;
 
+    /** Creates the controller for the album-import workflow. */
     public AlbumImportController(AlbumImportService imports) {
         this.imports = imports;
     }
 
     @PostMapping(path = "/analyze", consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
+    /** Stages uploaded files and returns editable metadata without mutating the catalog. */
     public ImportDraft analyze(@RequestParam List<MultipartFile> files)
             throws IOException, InterruptedException {
         return imports.analyze(files);
@@ -32,11 +36,13 @@ public class AlbumImportController {
 
     @PostMapping("/{id}/commit")
     @ResponseStatus(HttpStatus.CREATED)
+    /** Commits an analyzed draft after applying administrator corrections. */
     public ImportResult commit(@PathVariable UUID id, @RequestBody CommitImport request)
             throws IOException, InterruptedException {
         return imports.commit(id, request);
     }
 
+    /** Editable album-level analysis result and its opaque staging identifier. */
     public record ImportDraft(
             UUID id,
             String artist,
@@ -47,6 +53,7 @@ public class AlbumImportController {
             List<String> issues) {
     }
 
+    /** Detected metadata and conversion plan for one staged audio file. */
     public record ImportTrack(
             String stagedFile,
             String originalFilename,
@@ -59,10 +66,12 @@ public class AlbumImportController {
             List<String> issues) {
     }
 
+    /** Administrator-approved album metadata submitted during commit. */
     public record CommitImport(
             String artist, String album, int year, String artworkFile, List<CommitTrack> tracks) {
     }
 
+    /** Administrator-approved metadata for one staged track. */
     public record CommitTrack(
             String stagedFile,
             String title,
@@ -72,6 +81,7 @@ public class AlbumImportController {
             String sourceFormat) {
     }
 
+    /** Summary returned after a successful catalog commit. */
     public record ImportResult(
             UUID albumId, String album, int importedTracks, int transcodedTracks) {
     }

@@ -21,20 +21,25 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin")
+/** HTTP adapter for direct catalog administration operations. */
 public class AdminController {
+    /** Application service that owns catalog mutations and media persistence. */
     private final AdminCatalogService catalog;
 
+    /** Creates the controller for the supplied catalog service. */
     public AdminController(AdminCatalogService catalog) {
         this.catalog = catalog;
     }
 
     @GetMapping("/catalog")
+    /** Returns the complete editable catalog used by OpenChord Studio. */
     public List<AlbumView> catalog() {
         return catalog.catalog();
     }
 
     @PostMapping(path = "/tracks", consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
+    /** Creates one track, its missing artist/album parents, optional artwork, and lyrics. */
     public TrackView createTrack(
             @RequestParam String artist,
             @RequestParam String album,
@@ -61,16 +66,20 @@ public class AdminController {
     }
 
     @PutMapping("/tracks/{id}/lyrics")
+    /** Replaces every synchronized lyric line for a track. */
     public TrackView replaceLyrics(@PathVariable UUID id, @RequestBody LyricsRequest request) {
         return catalog.replaceLyrics(id, request.lyrics());
     }
 
+    /** Request body for replacing an LRC document. */
     public record LyricsRequest(String lyrics) {
     }
 
+    /** Stable JSON error envelope returned by administration endpoints. */
     public record ErrorView(String message) {
     }
 
+    /** Editable track projection returned to the administration UI. */
     public record TrackView(
             UUID id, String title, long durationMs, int discNumber, int number, int lyricLines) {
         static TrackView from(Track track) {
@@ -84,6 +93,7 @@ public class AdminController {
         }
     }
 
+    /** Album projection with its ordered tracks for administration screens. */
     public record AlbumView(
             UUID id, String title, int year, String artist, boolean hasArtwork, List<TrackView> tracks) {
         static AlbumView from(Album album) {

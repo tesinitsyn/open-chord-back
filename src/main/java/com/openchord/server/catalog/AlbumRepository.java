@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** Persistence port for album aggregates with explicit entity graphs for API use. */
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
     Optional<Album> findFirstByArtistAndTitleIgnoreCase(Artist artist, String title);
 

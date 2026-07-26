@@ -33,11 +33,16 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 @RestController
 @RequestMapping("/media")
+/** Serves managed audio and artwork without exposing filesystem paths. */
 public class MediaController {
+    /** Track metadata source used to authorize audio identifiers and locate files. */
     private final TrackRepository tracks;
+    /** Album metadata source used to authorize artwork identifiers and locate files. */
     private final AlbumRepository albums;
+    /** Normalized boundary for every path resolved by this controller. */
     private final Path mediaRoot;
 
+    /** Creates the media adapter and normalizes the configured root once. */
     public MediaController(
             TrackRepository tracks, AlbumRepository albums, OpenChordProperties properties) {
         this.tracks = tracks;
@@ -46,6 +51,11 @@ public class MediaController {
     }
 
     @GetMapping("/tracks/{id}")
+    /**
+     * Streams a complete track or one byte range.
+     *
+     * <p>Single-range support is sufficient for AVPlayer seeking and avoids buffering full files.
+     */
     public ResponseEntity<StreamingResponseBody> track(
             @PathVariable UUID id,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader)
@@ -122,6 +132,7 @@ public class MediaController {
     }
 
     @GetMapping("/artwork/{id}")
+    /** Returns cacheable album artwork with a filesystem-detected content type. */
     public ResponseEntity<Resource> artwork(@PathVariable UUID id) throws IOException {
         Album album =
                 albums
@@ -139,6 +150,7 @@ public class MediaController {
                 .body(resource);
     }
 
+    /** Resolves a managed relative path and rejects traversal or missing files. */
     private Resource resource(String storedPath, String unavailableMessage) {
         Path path = mediaRoot.resolve(storedPath).normalize();
         if (!path.startsWith(mediaRoot) || !Files.isRegularFile(path)) {

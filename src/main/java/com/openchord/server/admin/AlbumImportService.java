@@ -34,17 +34,31 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+/**
+ * Implements the two-phase smart album import workflow.
+ *
+ * <p>Analysis writes only to an opaque staging directory. Commit validates that directory again,
+ * transcodes lossless sources when required, stores managed media, and persists one album aggregate.
+ */
 public class AlbumImportService {
+    /** Audio extensions accepted during analysis. */
     private static final Set<String> AUDIO =
             Set.of("flac", "wav", "aiff", "aif", "m4a", "mp4", "mp3", "aac", "ogg", "opus");
+    /** Image extensions eligible for automatic cover selection. */
     private static final Set<String> ARTWORK = Set.of("jpg", "jpeg", "png", "webp");
+    /** Lossless source formats normalized to ALAC for Apple-client compatibility. */
     private static final Set<String> LOSSLESS_TO_ALAC = Set.of("flac", "wav", "aiff", "aif");
 
+    /** Artist persistence port. */
     private final ArtistRepository artists;
+    /** Album persistence port and aggregate save boundary. */
     private final AlbumRepository albums;
+    /** Parser for ffprobe JSON output. */
     private final ObjectMapper json = new ObjectMapper();
+    /** Normalized root for staging and permanent managed media. */
     private final Path mediaRoot;
 
+    /** Creates the workflow and normalizes the media root once. */
     public AlbumImportService(
             ArtistRepository artists, AlbumRepository albums, OpenChordProperties properties) {
         this.artists = artists;
@@ -52,6 +66,11 @@ public class AlbumImportService {
         this.mediaRoot = properties.mediaRoot().toAbsolutePath().normalize();
     }
 
+    /**
+     * Stages supported uploads, probes audio metadata, and returns a correctable draft.
+     *
+     * <p>This phase never mutates the catalog, so administrators can safely abandon a draft.
+     */
     public ImportDraft analyze(List<MultipartFile> files) throws IOException, InterruptedException {
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("Choose at least one audio file");
@@ -158,6 +177,11 @@ public class AlbumImportService {
     }
 
     @Transactional
+    /**
+     * Validates and commits a previously analyzed draft.
+     *
+     * <p>Staged filenames are treated as opaque identifiers and resolved with traversal checks.
+     */
     public ImportResult commit(UUID id, CommitImport request)
             throws IOException, InterruptedException {
         if (request.tracks() == null || request.tracks().isEmpty()) {
@@ -238,6 +262,7 @@ public class AlbumImportService {
         return new ImportResult(saved.getId(), saved.getTitle(), request.tracks().size(), transcoded);
     }
 
+    /** Runs ffprobe for one audio file and normalizes its tags into a small internal record. */
     private Probe probe(Path file) throws IOException, InterruptedException {
         String output =
                 run(
@@ -263,6 +288,7 @@ public class AlbumImportService {
         return new Probe(artist, album, title, year, number, disc, duration);
     }
 
+    /** Executes a media tool, returning stdout or converting a non-zero exit into validation failure. */
     private String run(List<String> command, String errorMessage)
             throws IOException, InterruptedException {
         Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
@@ -272,6 +298,7 @@ public class AlbumImportService {
         return output;
     }
 
+    /** Resolves an existing opaque import identifier below the staging root. */
     private Path importDirectory(UUID id) {
         Path path = mediaRoot.resolve(".imports").resolve(id.toString()).normalize();
         if (!path.startsWith(mediaRoot) || !Files.isDirectory(path)) {
@@ -280,6 +307,7 @@ public class AlbumImportService {
         return path;
     }
 
+    /** Resolves one staged filename while preventing directory traversal. */
     private static Path stagedFile(Path directory, String name) {
         Path path = directory.resolve(name).normalize();
         if (!path.startsWith(directory) || !Files.isRegularFile(path)) {
@@ -288,11 +316,13 @@ public class AlbumImportService {
         return path;
     }
 
+    /** Copies a media file after ensuring its destination directory exists. */
     private static void copy(Path source, Path target) throws IOException {
         Files.createDirectories(target.getParent());
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    /** Recursively removes a completed or rejected staging directory. */
     private static void deleteTree(Path root) throws IOException {
         if (!Files.exists(root)) return;
         try (var paths = Files.walk(root)) {
@@ -300,10 +330,12 @@ public class AlbumImportService {
         }
     }
 
+    /** Counts a non-blank detected metadata value. */
     private static void count(Map<String, Integer> values, String value) {
         if (!value.isBlank()) values.merge(value, 1, Integer::sum);
     }
 
+    /** Selects the most frequently detected text value or a stable fallback. */
     private static String mostCommon(Map<String, Integer> values, String fallback) {
         return values.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
@@ -311,6 +343,7 @@ public class AlbumImportService {
                 .orElse(fallback);
     }
 
+    /** Selects the most frequently detected year or the current year. */
     private static int mostCommonYear(Map<Integer, Integer> values) {
         return values.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
@@ -318,6 +351,7 @@ public class AlbumImportService {
                 .orElse(Year.now().getValue());
     }
 
+    /** Returns the first non-blank tag among format-specific aliases. */
     private static String first(JsonNode tags, String... names) {
         for (String name : names) {
             String value = tags.path(name).asText("").strip();
@@ -326,12 +360,14 @@ public class AlbumImportService {
         return "";
     }
 
+    /** Parses the numeric prefix used by tags such as {@code 03/12}. */
     private static int leadingInt(String value) {
         if (value == null) return 0;
         var match = java.util.regex.Pattern.compile("^(\\d+)").matcher(value.strip());
         return match.find() ? Integer.parseInt(match.group(1)) : 0;
     }
 
+    /** Recovers artist and title hints from a conventional audio filename. */
     private static Guess guess(String filename) {
         int dot = filename.lastIndexOf('.');
         String value = dot > 0 ? filename.substring(0, dot) : filename;
@@ -346,11 +382,13 @@ public class AlbumImportService {
         return parts.length == 2 ? new Guess(parts[0].strip(), parts[1].strip()) : new Guess("", value);
     }
 
+    /** Removes path components and control characters from a client-supplied filename. */
     private static String safeOriginalName(String filename) {
         if (filename == null || filename.isBlank()) return "audio";
         return Path.of(filename).getFileName().toString();
     }
 
+    /** Returns a lowercase filename extension without its leading period. */
     private static String extension(String filename) {
         int dot = filename.lastIndexOf('.');
         return dot < 0
@@ -364,6 +402,7 @@ public class AlbumImportService {
         return value.strip();
     }
 
+    /** Produces a conservative path component for generated media filenames. */
     private static String slug(String value) {
         String result =
                 java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
@@ -374,6 +413,7 @@ public class AlbumImportService {
         return result.isBlank() ? "album" : result;
     }
 
+    /** Maps stored audio extensions to response MIME types. */
     private static String contentType(String extension) {
         return switch (extension.toLowerCase(Locale.ROOT)) {
             case "mp3" -> "audio/mpeg";

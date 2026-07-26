@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** Persistence port for tracks with album, artist, and lyric details eagerly available. */
 public interface TrackRepository extends JpaRepository<Track, UUID> {
     @EntityGraph(attributePaths = {"album", "album.artist", "lyrics"})
     @Query("select distinct track from Track track where track.id = :id")
