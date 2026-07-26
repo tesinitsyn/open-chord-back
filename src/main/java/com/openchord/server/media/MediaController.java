@@ -31,18 +31,20 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+/**
+ * Serves managed audio and artwork files.
+ *
+ * <p>Audio responses support a single HTTP byte range so native players can seek without
+ * downloading an entire track. Stored paths are always resolved and validated below the configured
+ * media root before a resource is exposed.
+ */
 @RestController
 @RequestMapping("/media")
-/** Serves managed audio and artwork without exposing filesystem paths. */
 public class MediaController {
-    /** Track metadata source used to authorize audio identifiers and locate files. */
     private final TrackRepository tracks;
-    /** Album metadata source used to authorize artwork identifiers and locate files. */
     private final AlbumRepository albums;
-    /** Normalized boundary for every path resolved by this controller. */
     private final Path mediaRoot;
 
-    /** Creates the media adapter and normalizes the configured root once. */
     public MediaController(
             TrackRepository tracks, AlbumRepository albums, OpenChordProperties properties) {
         this.tracks = tracks;
@@ -50,12 +52,15 @@ public class MediaController {
         this.mediaRoot = properties.mediaRoot().toAbsolutePath().normalize();
     }
 
-    @GetMapping("/tracks/{id}")
     /**
-     * Streams a complete track or one byte range.
+     * Streams a track, optionally limiting the response to one byte range.
      *
-     * <p>Single-range support is sufficient for AVPlayer seeking and avoids buffering full files.
+     * @param id catalog identifier of the track
+     * @param rangeHeader optional HTTP {@code Range} header
+     * @return a complete or partial streaming response
+     * @throws IOException if the managed file cannot be inspected
      */
+    @GetMapping("/tracks/{id}")
     public ResponseEntity<StreamingResponseBody> track(
             @PathVariable UUID id,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader)
@@ -131,8 +136,14 @@ public class MediaController {
                 .body(body);
     }
 
+    /**
+     * Returns artwork for an album.
+     *
+     * @param id catalog identifier of the album
+     * @return the artwork resource with its detected media type
+     * @throws IOException if the managed file cannot be inspected
+     */
     @GetMapping("/artwork/{id}")
-    /** Returns cacheable album artwork with a filesystem-detected content type. */
     public ResponseEntity<Resource> artwork(@PathVariable UUID id) throws IOException {
         Album album =
                 albums
@@ -150,7 +161,6 @@ public class MediaController {
                 .body(resource);
     }
 
-    /** Resolves a managed relative path and rejects traversal or missing files. */
     private Resource resource(String storedPath, String unavailableMessage) {
         Path path = mediaRoot.resolve(storedPath).normalize();
         if (!path.startsWith(mediaRoot) || !Files.isRegularFile(path)) {

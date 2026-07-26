@@ -10,22 +10,25 @@ import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Records client playback progress and completion events for catalog history. */
 @Service
-/** Validates and persists client playback progress events. */
 public class PlaybackService {
-    /** Track source used to validate event targets and clamp progress. */
     private final TrackRepository tracks;
-    /** Playback history persistence port. */
     private final PlaybackEventRepository events;
 
-    /** Creates the playback service from its persistence ports. */
     public PlaybackService(TrackRepository tracks, PlaybackEventRepository events) {
         this.tracks = tracks;
         this.events = events;
     }
 
+    /**
+     * Persists a playback event after resolving and validating its track.
+     *
+     * @param input client-reported playback state
+     * @return the persisted event
+     * @throws graphql.GraphQLException if the position is negative or the track does not exist
+     */
     @Transactional
-    /** Records a playback event, rejecting invalid positions and unknown tracks. */
     public PlaybackEvent record(PlaybackEventInput input) {
         if (input.positionMs() < 0) {
             throw GraphqlErrorException.newErrorException()

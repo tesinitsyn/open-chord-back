@@ -16,42 +16,36 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Playable catalog track and owner of its synchronized lyric lines.
+ *
+ * <p>Audio paths are relative to the managed media root. Relationship helpers keep the in-memory
+ * aggregate consistent with the owning JPA associations.
+ */
 @Entity
 @Table(name = "tracks")
-/** Persistent playable track belonging to one album and owning synchronized lyric lines. */
 public class Track {
-    /** Stable database identifier used by media and playback endpoints. */
     @Id
     @GeneratedValue
     private UUID id;
-    /** Display title. */
     private String title;
-    /** Full track duration in milliseconds. */
     private long durationMs;
-    /** One-based disc number. */
     private int discNumber;
-    /** One-based position within the disc. */
     private int number;
-    /** Media-root-relative audio path. */
     private String audioPath;
-    /** MIME type returned by the media endpoint. */
     private String contentType;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "album_id")
-    /** Owning album; attached through {@link Album#addTrack(Track)}. */
     private Album album;
 
     @OneToMany(mappedBy = "track", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("startMs")
-    /** Synchronized lyric lines ordered by their start timestamp. */
     private Set<LyricLine> lyrics = new LinkedHashSet<>();
 
-    /** Required by JPA. */
     protected Track() {
     }
 
-    /** Creates a not-yet-attached track with stored-media metadata. */
     public Track(
             String title,
             long durationMs,
@@ -67,64 +61,62 @@ public class Track {
         this.contentType = contentType;
     }
 
-    /** Synchronizes the inverse side of the album relationship. */
     void attachTo(Album album) {
         this.album = album;
     }
 
-    /** Adds a lyric line and synchronizes its track relationship. */
     public void addLyricLine(LyricLine line) {
         lyrics.add(line);
         line.attachTo(this);
     }
 
-    /** Atomically replaces the ordered lyric collection for this aggregate. */
+    /**
+     * Replaces the lyric collection while maintaining each line's owning relationship.
+     *
+     * @param lines new synchronized lyrics in playback order
+     */
     public void replaceLyrics(List<LyricLine> lines) {
         lyrics.clear();
         lines.forEach(this::addLyricLine);
     }
 
-    /** Returns the persistent track identifier. */
     public UUID getId() {
         return id;
     }
 
-    /** Returns the display title. */
     public String getTitle() {
         return title;
     }
 
-    /** Returns the duration in milliseconds. */
     public long getDurationMs() {
         return durationMs;
     }
 
-    /** Returns the one-based disc number. */
     public int getDiscNumber() {
         return discNumber;
     }
 
-    /** Returns the one-based track number. */
     public int getNumber() {
         return number;
     }
 
-    /** Returns the media-root-relative audio path. */
     public String getAudioPath() {
         return audioPath;
     }
 
-    /** Returns the audio MIME type. */
     public String getContentType() {
         return contentType;
     }
 
-    /** Returns the owning album. */
     public Album getAlbum() {
         return album;
     }
 
-    /** Returns an immutable timestamp-ordered lyric snapshot. */
+    /**
+     * Returns synchronized lyrics in timestamp order.
+     *
+     * @return immutable ordered snapshot of the lyric collection
+     */
     public List<LyricLine> getLyrics() {
         return List.copyOf(lyrics);
     }

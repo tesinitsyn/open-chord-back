@@ -4,15 +4,14 @@ import java.nio.file.Path;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "openchord")
 /**
- * Typed server configuration.
+ * Filesystem and public URL settings for managed OpenChord media.
  *
- * @param mediaRoot filesystem root containing managed artwork, tracks, and import staging files
- * @param publicBaseUrl base URL placed in GraphQL media links
+ * @param mediaRoot root below which audio, artwork, and temporary imports are stored
+ * @param publicBaseUrl externally reachable server URL used to construct media links
  */
+@ConfigurationProperties(prefix = "openchord")
 public record OpenChordProperties(Path mediaRoot, String publicBaseUrl) {
-    /** Normalizes the public base URL so callers can safely append absolute endpoint paths. */
     public OpenChordProperties {
         publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }

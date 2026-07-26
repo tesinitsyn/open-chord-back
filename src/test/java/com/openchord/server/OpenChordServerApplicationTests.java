@@ -37,7 +37,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
-/** End-to-end application contract tests backed by a disposable PostgreSQL container. */
 class OpenChordServerApplicationTests {
     @Container
     static final PostgreSQLContainer POSTGRES =

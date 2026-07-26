@@ -7,7 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-/** Persistence port for playback history and recent-album projections. */
 public interface PlaybackEventRepository extends JpaRepository<PlaybackEvent, UUID> {
     @Query(
             """
