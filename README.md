@@ -8,7 +8,7 @@ media delivery.
 
 - `GET /admin/` — separate React admin for uploading tracks, artwork and synchronized lyrics.
 - `POST /api/admin/imports/analyze` — stage an album folder and inspect embedded metadata.
-- `POST /api/admin/imports/{id}/commit` — atomically import the reviewed album; FLAC/WAV sources become ALAC.
+- `POST /api/admin/imports/{id}/commit` — import the reviewed album; FLAC/WAV/AIFF sources become ALAC.
 - `POST /graphql` — catalog queries and playback mutations.
 - `GET /media/tracks/{id}` — audio with single-range HTTP support.
 - `GET /media/artwork/{id}` — album artwork.
@@ -68,7 +68,8 @@ docker build -t openchord-back:local .
 GitHub Actions reports formatting, static analysis, tests and container build
 as separate checks. Integration tests use Testcontainers against real
 PostgreSQL rather than an in-memory database emulation. The runtime image is
-unprivileged and Compose mounts media read-only.
+unprivileged. Compose mounts `./media` read-write because the administration
+workflows stage uploads and create managed media there.
 
 The admin interface is intended for a trusted private network. Put the server behind
 authenticated access before exposing it to the public internet.
@@ -80,3 +81,18 @@ embedded artist, album, year, disc, track, title and duration metadata before an
 is added to the catalog. The review screen exposes inconsistencies and allows
 corrections. On commit, lossless FLAC/WAV/AIFF sources are converted to ALAC in an M4A
 container; already compatible compressed sources are kept as-is.
+
+The database changes made by commit are transactional. Media copies and FFmpeg output
+are filesystem operations and therefore are not rolled back with the database
+transaction. Failed imports may leave unreferenced files under `MEDIA_ROOT`; see
+[`docs/architecture.md`](docs/architecture.md) for the complete consistency and
+security boundaries.
+
+## Developer documentation
+
+- [`docs/architecture.md`](docs/architecture.md) — module responsibilities, domain
+  invariants, request flows, transaction boundaries and operational caveats.
+- [`src/main/resources/graphql/schema.graphqls`](src/main/resources/graphql/schema.graphqls)
+  — authoritative public GraphQL contract.
+- [`src/main/resources/db/migration`](src/main/resources/db/migration) — authoritative
+  database schema and seed history.

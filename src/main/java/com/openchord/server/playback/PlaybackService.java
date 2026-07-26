@@ -10,6 +10,13 @@ import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Appends client-reported playback events used to derive recently played albums.
+ *
+ * <p>Positions beyond the known track duration are clamped; negative positions and unknown tracks
+ * are rejected with stable GraphQL error codes. A missing client timestamp is recorded with the
+ * server clock.
+ */
 @Service
 public class PlaybackService {
     private final TrackRepository tracks;
@@ -20,6 +27,14 @@ public class PlaybackService {
         this.events = events;
     }
 
+    /**
+     * Validates and persists one immutable playback event.
+     *
+     * @param input client-reported playback state
+     * @return the persisted event
+     * @throws graphql.GraphQLException with {@code BAD_USER_INPUT} for a negative position or
+     *                                  {@code NOT_FOUND} for an unknown track
+     */
     @Transactional
     public PlaybackEvent record(PlaybackEventInput input) {
         if (input.positionMs() < 0) {

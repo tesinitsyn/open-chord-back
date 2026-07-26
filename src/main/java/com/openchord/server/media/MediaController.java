@@ -31,6 +31,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+/**
+ * Serves managed audio and artwork files.
+ *
+ * <p>Audio responses support either a complete representation or one HTTP byte range so native
+ * players can seek without downloading an entire track. Multiple ranges and unsatisfiable ranges
+ * return {@code 416}. Stored paths are resolved and validated below the configured media root
+ * before a resource is exposed.
+ */
 @RestController
 @RequestMapping("/media")
 public class MediaController {
@@ -45,6 +53,15 @@ public class MediaController {
         this.mediaRoot = properties.mediaRoot().toAbsolutePath().normalize();
     }
 
+    /**
+     * Streams a track, optionally limiting the response to one byte range.
+     *
+     * @param id          catalog identifier of the track
+     * @param rangeHeader optional HTTP {@code Range} header
+     * @return {@code 200} for the complete file, {@code 206} for one satisfiable range, or {@code
+     * 416} for a malformed, multiple, or unsatisfiable range
+     * @throws IOException if the managed file cannot be inspected
+     */
     @GetMapping("/tracks/{id}")
     public ResponseEntity<StreamingResponseBody> track(
             @PathVariable UUID id,
@@ -121,6 +138,13 @@ public class MediaController {
                 .body(body);
     }
 
+    /**
+     * Returns artwork for an album.
+     *
+     * @param id catalog identifier of the album
+     * @return the artwork resource with its detected media type
+     * @throws IOException if the managed file cannot be inspected
+     */
     @GetMapping("/artwork/{id}")
     public ResponseEntity<Resource> artwork(@PathVariable UUID id) throws IOException {
         Album album =

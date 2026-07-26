@@ -7,6 +7,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+/**
+ * Persistence access for playback history.
+ *
+ * <p>Recent album IDs are ordered by the newest event in each album group, not by insertion order
+ * or an individual track's latest event.
+ */
 public interface PlaybackEventRepository extends JpaRepository<PlaybackEvent, UUID> {
     @Query(
             """

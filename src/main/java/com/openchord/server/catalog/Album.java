@@ -16,6 +16,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Album aggregate that owns its ordered tracks and optional artwork reference.
+ *
+ * <p>The artwork path is relative to the managed media root. Tracks must be added through {@link
+ * #addTrack(Track)} so both sides of the JPA relationship stay consistent.
+ */
 @Entity
 @Table(name = "albums")
 public class Album {
@@ -44,6 +50,11 @@ public class Album {
         this.artist = artist;
     }
 
+    /**
+     * Adds a track and attaches it to this album.
+     *
+     * @param track track to add
+     */
     public void addTrack(Track track) {
         tracks.add(track);
         track.attachTo(this);
@@ -73,6 +84,11 @@ public class Album {
         return artist;
     }
 
+    /**
+     * Returns the tracks in disc and track order.
+     *
+     * @return immutable ordered snapshot of the aggregate's tracks
+     */
     public List<Track> getTracks() {
         return List.copyOf(tracks);
     }

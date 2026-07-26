@@ -5,6 +5,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 
+/**
+ * Registers the non-default scalar implementations declared by the public GraphQL schema.
+ */
 @Configuration
 public class GraphQlConfiguration {
     @Bean

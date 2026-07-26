@@ -16,6 +16,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Playable catalog track and owner of its synchronized lyric lines.
+ *
+ * <p>Audio paths are relative to the managed media root. Relationship helpers keep the in-memory
+ * aggregate consistent with the owning JPA associations.
+ */
 @Entity
 @Table(name = "tracks")
 public class Track {
@@ -64,6 +70,11 @@ public class Track {
         line.attachTo(this);
     }
 
+    /**
+     * Replaces the lyric collection while maintaining each line's owning relationship.
+     *
+     * @param lines new synchronized lyrics in playback order
+     */
     public void replaceLyrics(List<LyricLine> lines) {
         lyrics.clear();
         lines.forEach(this::addLyricLine);
@@ -101,6 +112,11 @@ public class Track {
         return album;
     }
 
+    /**
+     * Returns synchronized lyrics in timestamp order.
+     *
+     * @return immutable ordered snapshot of the lyric collection
+     */
     public List<LyricLine> getLyrics() {
         return List.copyOf(lyrics);
     }

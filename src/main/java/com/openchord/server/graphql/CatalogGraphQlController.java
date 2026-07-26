@@ -15,6 +15,12 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
+/**
+ * Resolves the public catalog queries and playback mutation defined in {@code schema.graphqls}.
+ *
+ * <p>Domain entities never cross the GraphQL boundary; they are mapped to immutable transport
+ * records and media paths are expanded using the configured public base URL.
+ */
 @Controller
 public class CatalogGraphQlController {
     private final CatalogService catalog;

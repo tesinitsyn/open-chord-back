@@ -10,6 +10,12 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
+/**
+ * Synchronized lyric segment active from {@code startMs} until {@code endMs}.
+ *
+ * <p>Times are measured from the beginning of the owning track. The start is inclusive and the end
+ * is exclusive.
+ */
 @Entity
 @Table(name = "lyric_lines")
 public class LyricLine {

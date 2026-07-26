@@ -10,6 +10,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Read-only application service for public catalog and listening-history queries.
+ *
+ * <p>Results are fully initialized inside each transaction so controllers can safely map lazy JPA
+ * relationships after the repository call. User-provided pagination values are clamped to bounded
+ * ranges.
+ */
 @Service
 public class CatalogService {
     private final AlbumRepository albums;
