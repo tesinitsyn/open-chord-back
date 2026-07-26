@@ -9,6 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Album persistence and catalog-specific fetch plans.
+ *
+ * <p>The detailed queries eagerly load artist, tracks, and lyrics because API projections are
+ * mapped before their read-only service transaction closes.
+ */
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
     Optional<Album> findFirstByArtistAndTitleIgnoreCase(Artist artist, String title);
 

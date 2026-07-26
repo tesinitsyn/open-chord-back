@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Trusted-network administration API for catalog inspection and direct track mutations.
+ *
+ * <p>Album-sized, reviewable uploads use {@link AlbumImportController}; this controller serves the
+ * simpler single-track workflow.
+ */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -65,12 +71,32 @@ public class AdminController {
         return catalog.replaceLyrics(id, request.lyrics());
     }
 
+    /**
+     * Replacement synchronized lyrics submitted by an administrator.
+     *
+     * @param lyrics LRC or plain text; blank removes existing lines
+     */
     public record LyricsRequest(String lyrics) {
     }
 
+    /**
+     * Stable error body returned for rejected admin requests.
+     *
+     * @param message human-readable reason suitable for the admin UI
+     */
     public record ErrorView(String message) {
     }
 
+    /**
+     * Compact track projection used by the administration catalog.
+     *
+     * @param id         track identifier
+     * @param title      display title
+     * @param durationMs duration in milliseconds
+     * @param discNumber one-based disc number
+     * @param number     one-based position on the disc
+     * @param lyricLines number of synchronized lyric intervals
+     */
     public record TrackView(
             UUID id, String title, long durationMs, int discNumber, int number, int lyricLines) {
         static TrackView from(Track track) {
@@ -84,6 +110,16 @@ public class AdminController {
         }
     }
 
+    /**
+     * Album projection used by the administration catalog.
+     *
+     * @param id         album identifier
+     * @param title      display title
+     * @param year       release year
+     * @param artist     artist display name
+     * @param hasArtwork whether a managed artwork path is present
+     * @param tracks     tracks in disc and track order
+     */
     public record AlbumView(
             UUID id, String title, int year, String artist, boolean hasArtwork, List<TrackView> tracks) {
         static AlbumView from(Album album) {

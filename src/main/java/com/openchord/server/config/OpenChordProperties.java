@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Filesystem and public URL settings for managed OpenChord media.
  *
- * @param mediaRoot root below which audio, artwork, and temporary imports are stored
+ * @param mediaRoot     root below which audio, artwork, and temporary imports are stored
  * @param publicBaseUrl externally reachable server URL used to construct media links
  */
 @ConfigurationProperties(prefix = "openchord")

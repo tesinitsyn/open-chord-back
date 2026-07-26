@@ -38,8 +38,14 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <p>{@link #analyze(List)} stores uploads in an isolated staging directory and returns detected
  * metadata without changing the catalog. {@link #commit(UUID, CommitImport)} accepts the reviewed
- * metadata, moves or transcodes the staged audio, and persists the album. Staged filenames are
+ * metadata, copies or transcodes the staged audio, and persists the album. Staged filenames are
  * opaque tokens and are resolved below the configured media root.
+ *
+ * <p>The catalog commit is a database transaction; staging, copying, transcoding, and cleanup are
+ * filesystem operations outside that transaction. A failed commit can leave generated media
+ * files, and staging cleanup occurs before Spring completes the surrounding transaction. A
+ * database commit failure can therefore leave generated files without either a catalog record or
+ * the original draft.
  */
 @Service
 public class AlbumImportService {
@@ -68,9 +74,10 @@ public class AlbumImportService {
      *
      * @param files files selected for a single album import
      * @return detected album metadata and the tracks eligible for import
+     * <p>There is currently no automatic expiry job for abandoned staging directories.
      * @throws IllegalArgumentException if no supported audio file is present
-     * @throws IOException if an upload cannot be staged or inspected
-     * @throws InterruptedException if media inspection is interrupted
+     * @throws IOException              if an upload cannot be staged or inspected
+     * @throws InterruptedException     if media inspection is interrupted
      */
     public ImportDraft analyze(List<MultipartFile> files) throws IOException, InterruptedException {
         if (files == null || files.isEmpty()) {
@@ -178,14 +185,19 @@ public class AlbumImportService {
     }
 
     /**
-     * Commits a reviewed draft to the catalog.
+     * Copies or transcodes every reviewed track and persists the resulting album aggregate.
      *
-     * @param id opaque identifier returned by {@link #analyze(List)}
+     * <p>The request is authoritative for user-editable metadata, but every staged filename is
+     * resolved inside the draft's directory. Track positions must be unique within the request.
+     * The staging directory is deleted after the database flush succeeds but before the surrounding
+     * transaction commits.
+     *
+     * @param id      opaque identifier returned by {@link #analyze(List)}
      * @param request reviewed album and track metadata
      * @return summary of the persisted album and any performed transcodes
-     * @throws IllegalArgumentException if the draft is invalid, expired, or unsafe to resolve
-     * @throws IOException if staged or managed media cannot be read or written
-     * @throws InterruptedException if audio transcoding is interrupted
+     * @throws IllegalArgumentException if the draft is missing, invalid, or unsafe to resolve
+     * @throws IOException              if staged or managed media cannot be read or written
+     * @throws InterruptedException     if audio transcoding is interrupted
      */
     @Transactional
     public ImportResult commit(UUID id, CommitImport request)

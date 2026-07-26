@@ -27,7 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Implements direct catalog administration operations that do not use the album import workflow.
+ * Handles single-track administration outside the staged album-import workflow.
+ *
+ * <p>Database writes are transactional, but media writes are not. A transaction rollback after
+ * {@link #store(MultipartFile, String)} has completed can therefore leave an unreferenced file
+ * below the media root.
  */
 @Service
 public class AdminCatalogService {
@@ -56,20 +60,24 @@ public class AdminCatalogService {
     }
 
     /**
-     * Stores a track and creates missing artist or album records.
+     * Creates a track, reusing a case-insensitive artist and album match when one exists.
      *
-     * @param artistName artist display name
-     * @param albumTitle album display title
-     * @param year album release year
-     * @param title track display title
-     * @param durationMs track duration in milliseconds
-     * @param discNumber one-based disc number
-     * @param number one-based position on the disc
-     * @param audio required audio upload
-     * @param artwork optional album artwork upload
-     * @param lyrics optional synchronized LRC document
+     * <p>The audio file is written before the aggregate is flushed. Artwork replaces the matched
+     * album's current artwork path when supplied. Callers must treat failures as potentially
+     * leaving unreferenced files in managed storage.
+     *
+     * @param artistName  artist display name
+     * @param albumTitle  album display title
+     * @param releaseYear album release year
+     * @param trackTitle  track display title
+     * @param discNumber  one-based disc number
+     * @param trackNumber one-based position on the disc
+     * @param durationMs  track duration in milliseconds
+     * @param lyrics      LRC text; blank removes synchronized lyrics
+     * @param audio       required audio upload
+     * @param artwork     optional artwork that becomes the album's current artwork
      * @return the newly persisted track
-     * @throws IOException if managed media cannot be written
+     * @throws IOException              if managed media cannot be written
      * @throws IllegalArgumentException if required metadata or audio is missing
      */
     @Transactional
@@ -127,7 +135,7 @@ public class AdminCatalogService {
     /**
      * Replaces all synchronized lyric lines for a track.
      *
-     * @param id identifier of the track to update
+     * @param id     identifier of the track to update
      * @param lyrics LRC document, or a blank value to remove lyrics
      * @return the updated track projection
      * @throws IllegalArgumentException if the track does not exist or the LRC document is invalid
@@ -143,12 +151,16 @@ public class AdminCatalogService {
     }
 
     /**
-     * Parses an LRC document and derives each line's end from the following timestamp.
+     * Converts lyrics to non-overlapping playback intervals.
      *
-     * @param source LRC text
+     * <p>Timestamped LRC lines use {@code [mm:ss]}, {@code [mm:ss.xx]}, or {@code [mm:ss.xxx]}.
+     * For compatibility with plain-text uploads, nonblank untagged lines are assigned five-second
+     * intervals based on their source line number. Empty lyric text and lines starting at or after
+     * the track duration are discarded.
+     *
+     * @param source     LRC text
      * @param durationMs duration used as the final line's end
      * @return timestamp-ordered lyric lines
-     * @throws IllegalArgumentException if a nonblank line has no supported timestamp
      */
     static List<LyricLine> parseLyrics(String source, long durationMs) {
         if (source == null || source.isBlank()) {

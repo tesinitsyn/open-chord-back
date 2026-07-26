@@ -34,9 +34,10 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 /**
  * Serves managed audio and artwork files.
  *
- * <p>Audio responses support a single HTTP byte range so native players can seek without
- * downloading an entire track. Stored paths are always resolved and validated below the configured
- * media root before a resource is exposed.
+ * <p>Audio responses support either a complete representation or one HTTP byte range so native
+ * players can seek without downloading an entire track. Multiple ranges and unsatisfiable ranges
+ * return {@code 416}. Stored paths are resolved and validated below the configured media root
+ * before a resource is exposed.
  */
 @RestController
 @RequestMapping("/media")
@@ -55,9 +56,10 @@ public class MediaController {
     /**
      * Streams a track, optionally limiting the response to one byte range.
      *
-     * @param id catalog identifier of the track
+     * @param id          catalog identifier of the track
      * @param rangeHeader optional HTTP {@code Range} header
-     * @return a complete or partial streaming response
+     * @return {@code 200} for the complete file, {@code 206} for one satisfiable range, or {@code
+     * 416} for a malformed, multiple, or unsatisfiable range
      * @throws IOException if the managed file cannot be inspected
      */
     @GetMapping("/tracks/{id}")

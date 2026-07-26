@@ -12,6 +12,12 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Immutable record of client-reported playback state at a point in time.
+ *
+ * <p>Events are append-only and drive album recency. The service layer validates the track and
+ * normalizes the position before constructing this entity.
+ */
 @Entity
 @Table(name = "playback_events")
 public class PlaybackEvent {
