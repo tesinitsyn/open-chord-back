@@ -45,6 +45,8 @@ type Track {
 type Playlist {
     id: ID!
     name: String!
+    description: String!
+    artworkUrl: String
     createdAt: DateTime!
     updatedAt: DateTime!
     tracks: [Track!]!

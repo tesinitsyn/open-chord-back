@@ -30,6 +30,9 @@ public class Playlist {
     private UUID id;
 
     private String name;
+    private String description;
+    private String artworkPath;
+    private String artworkContentType;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -40,8 +43,9 @@ public class Playlist {
     protected Playlist() {
     }
 
-    public Playlist(String name, Instant now) {
+    public Playlist(String name, String description, Instant now) {
         this.name = name;
+        this.description = description;
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -96,6 +100,24 @@ public class Playlist {
 
     public String getName() {
         return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getArtworkPath() {
+        return artworkPath;
+    }
+
+    public String getArtworkContentType() {
+        return artworkContentType;
+    }
+
+    public void setArtwork(String path, String contentType, Instant now) {
+        artworkPath = path;
+        artworkContentType = contentType;
+        touch(now);
     }
 
     public Instant getCreatedAt() {

@@ -122,13 +122,21 @@ public final class CatalogTypes {
     public record PlaylistView(
             UUID id,
             String name,
+            String description,
+            String artworkUrl,
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt,
             List<TrackView> tracks) {
-        static PlaylistView from(Playlist playlist, OpenChordProperties properties) {
+        public static PlaylistView from(Playlist playlist, OpenChordProperties properties) {
             return new PlaylistView(
                     playlist.getId(),
                     playlist.getName(),
+                    playlist.getDescription(),
+                    playlist.getArtworkPath() == null
+                            ? null
+                            : properties.publicBaseUrl()
+                                    + "/media/playlist-artwork/"
+                                    + playlist.getId(),
                     playlist.getCreatedAt().atOffset(ZoneOffset.UTC),
                     playlist.getUpdatedAt().atOffset(ZoneOffset.UTC),
                     playlist.getEntries().stream()
