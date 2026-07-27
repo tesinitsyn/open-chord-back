@@ -5,7 +5,10 @@ import com.openchord.server.config.OpenChordProperties;
 import com.openchord.server.graphql.CatalogTypes.AlbumView;
 import com.openchord.server.graphql.CatalogTypes.PlaybackEventInput;
 import com.openchord.server.graphql.CatalogTypes.PlaybackEventView;
+import com.openchord.server.graphql.CatalogTypes.PlaylistView;
 import com.openchord.server.playback.PlaybackService;
+import com.openchord.server.playlist.PlaylistNotFoundException;
+import com.openchord.server.playlist.PlaylistService;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,12 +28,17 @@ import org.springframework.stereotype.Controller;
 public class CatalogGraphQlController {
     private final CatalogService catalog;
     private final PlaybackService playback;
+    private final PlaylistService playlists;
     private final OpenChordProperties properties;
 
     public CatalogGraphQlController(
-            CatalogService catalog, PlaybackService playback, OpenChordProperties properties) {
+            CatalogService catalog,
+            PlaybackService playback,
+            PlaylistService playlists,
+            OpenChordProperties properties) {
         this.catalog = catalog;
         this.playback = playback;
+        this.playlists = playlists;
         this.properties = properties;
     }
 
@@ -54,8 +62,57 @@ public class CatalogGraphQlController {
                 .toList();
     }
 
+    @QueryMapping
+    public List<PlaylistView> playlists() {
+        return playlists.playlists().stream()
+                .map(playlist -> PlaylistView.from(playlist, properties))
+                .toList();
+    }
+
+    @QueryMapping
+    public PlaylistView playlist(@Argument UUID id) {
+        try {
+            return PlaylistView.from(playlists.playlist(id), properties);
+        } catch (PlaylistNotFoundException ignored) {
+            return null;
+        }
+    }
+
     @MutationMapping
     public PlaybackEventView recordPlayback(@Argument PlaybackEventInput input) {
         return PlaybackEventView.from(playback.record(input));
+    }
+
+    @MutationMapping
+    public PlaylistView createPlaylist(@Argument String name) {
+        return PlaylistView.from(playlists.create(name), properties);
+    }
+
+    @MutationMapping
+    public PlaylistView renamePlaylist(@Argument UUID id, @Argument String name) {
+        return PlaylistView.from(playlists.rename(id, name), properties);
+    }
+
+    @MutationMapping
+    public boolean deletePlaylist(@Argument UUID id) {
+        return playlists.delete(id);
+    }
+
+    @MutationMapping
+    public PlaylistView addTrackToPlaylist(
+            @Argument UUID playlistId, @Argument UUID trackId) {
+        return PlaylistView.from(playlists.addTrack(playlistId, trackId), properties);
+    }
+
+    @MutationMapping
+    public PlaylistView removeTrackFromPlaylist(
+            @Argument UUID playlistId, @Argument UUID trackId) {
+        return PlaylistView.from(playlists.removeTrack(playlistId, trackId), properties);
+    }
+
+    @MutationMapping
+    public PlaylistView moveTrackInPlaylist(
+            @Argument UUID playlistId, @Argument UUID trackId, @Argument int position) {
+        return PlaylistView.from(playlists.moveTrack(playlistId, trackId, position), properties);
     }
 }
