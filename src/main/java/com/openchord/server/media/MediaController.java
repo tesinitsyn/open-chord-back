@@ -8,6 +8,8 @@ import com.openchord.server.catalog.AlbumRepository;
 import com.openchord.server.catalog.Track;
 import com.openchord.server.catalog.TrackRepository;
 import com.openchord.server.config.OpenChordProperties;
+import com.openchord.server.playlist.Playlist;
+import com.openchord.server.playlist.PlaylistRepository;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,12 +46,17 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 public class MediaController {
     private final TrackRepository tracks;
     private final AlbumRepository albums;
+    private final PlaylistRepository playlists;
     private final Path mediaRoot;
 
     public MediaController(
-            TrackRepository tracks, AlbumRepository albums, OpenChordProperties properties) {
+            TrackRepository tracks,
+            AlbumRepository albums,
+            PlaylistRepository playlists,
+            OpenChordProperties properties) {
         this.tracks = tracks;
         this.albums = albums;
+        this.playlists = playlists;
         this.mediaRoot = properties.mediaRoot().toAbsolutePath().normalize();
     }
 
@@ -156,6 +163,24 @@ public class MediaController {
         String detected = Files.probeContentType(resource.getFile().toPath());
         MediaType contentType =
                 detected == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(detected);
+        return ResponseEntity.ok()
+                .contentType(contentType)
+                .contentLength(resource.contentLength())
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(1)).cachePublic())
+                .body(resource);
+    }
+
+    /** Returns user-supplied artwork for a playlist. */
+    @GetMapping("/playlist-artwork/{id}")
+    public ResponseEntity<Resource> playlistArtwork(@PathVariable UUID id) throws IOException {
+        Playlist playlist =
+                playlists
+                        .findById(id)
+                        .filter(value -> value.getArtworkPath() != null)
+                        .orElseThrow(
+                                () -> new ResponseStatusException(NOT_FOUND, "Artwork not found"));
+        Resource resource = resource(playlist.getArtworkPath(), "Artwork file unavailable");
+        MediaType contentType = MediaType.parseMediaType(playlist.getArtworkContentType());
         return ResponseEntity.ok()
                 .contentType(contentType)
                 .contentLength(resource.contentLength())

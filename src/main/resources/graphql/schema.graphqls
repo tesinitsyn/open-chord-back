@@ -2,10 +2,18 @@ type Query {
     albums(search: String, limit: Int = 50, offset: Int = 0): [Album!]!
     album(id: ID!): Album
     recentlyPlayed(limit: Int = 10): [Album!]!
+    playlists: [Playlist!]!
+    playlist(id: ID!): Playlist
 }
 
 type Mutation {
     recordPlayback(input: PlaybackEventInput!): PlaybackEvent!
+    createPlaylist(name: String!): Playlist!
+    renamePlaylist(id: ID!, name: String!): Playlist!
+    deletePlaylist(id: ID!): Boolean!
+    addTrackToPlaylist(playlistId: ID!, trackId: ID!): Playlist!
+    removeTrackFromPlaylist(playlistId: ID!, trackId: ID!): Playlist!
+    moveTrackInPlaylist(playlistId: ID!, trackId: ID!, position: Int!): Playlist!
 }
 
 type Artist {
@@ -32,6 +40,16 @@ type Track {
     albumTitle: String!
     streamUrl: String!
     lyrics: [LyricLine!]!
+}
+
+type Playlist {
+    id: ID!
+    name: String!
+    description: String!
+    artworkUrl: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    tracks: [Track!]!
 }
 
 type LyricLine {

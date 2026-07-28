@@ -23,10 +23,11 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: ./mvnw -B spotless:check
+      - run: ./mvnw -B --no-transfer-progress spotless:check
 
   static-analysis:
     name: Static analysis
+    needs: format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,10 +36,11 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: ./mvnw -B -DskipTests compile
+      - run: ./mvnw -B --no-transfer-progress -DskipTests compile
 
   tests:
     name: Tests
+    needs: static-analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,10 +49,18 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: ./mvnw -B test
+      - run: ./mvnw -B --no-transfer-progress test
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: target/surefire-reports
+          if-no-files-found: ignore
 
   container:
     name: Container build
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

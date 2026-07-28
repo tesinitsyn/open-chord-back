@@ -16,6 +16,7 @@ import com.openchord.server.catalog.Artist;
 import com.openchord.server.catalog.ArtistRepository;
 import com.openchord.server.catalog.LyricLine;
 import com.openchord.server.catalog.Track;
+import com.openchord.server.playlist.PlaylistRepository;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,12 +59,15 @@ class OpenChordServerApplicationTests {
     private ArtistRepository artists;
     @Autowired
     private AlbumRepository albums;
+    @Autowired
+    private PlaylistRepository playlists;
 
     private Album album;
     private Track track;
 
     @BeforeEach
     void seedCatalog() throws Exception {
+        playlists.deleteAll();
         albums.deleteAll();
         artists.deleteAll();
 
@@ -82,6 +86,75 @@ class OpenChordServerApplicationTests {
                         "night-drive.m4a");
         Files.createDirectories(audio.getParent());
         Files.write(audio, "0123456789".getBytes());
+    }
+
+    @Test
+    void playlistLifecyclePreservesTrackOrder() throws Exception {
+        MvcResult created =
+                mvc.perform(
+                                post("/graphql")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                """
+                                                        {"query":"mutation { createPlaylist(name: \\"Night drive\\") { id name tracks { id } } }"}
+                                                        """))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.data.createPlaylist.name", is("Night drive")))
+                        .andExpect(jsonPath("$.data.createPlaylist.tracks.length()", is(0)))
+                        .andReturn();
+
+        String body = created.getResponse().getContentAsString();
+        String playlistId =
+                com.jayway.jsonpath.JsonPath.read(body, "$.data.createPlaylist.id");
+
+        mvc.perform(
+                        post("/graphql")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                                {"query":"mutation { addTrackToPlaylist(playlistId: \\"%s\\", trackId: \\"%s\\") { tracks { id title } } }"}
+                                                """
+                                                .formatted(playlistId, track.getId())))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath(
+                                "$.data.addTrackToPlaylist.tracks[0].id",
+                                is(track.getId().toString())));
+
+        // Adding the same track is idempotent so a retried client mutation
+        // cannot create duplicate playlist rows.
+        mvc.perform(
+                        post("/graphql")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                                {"query":"mutation { addTrackToPlaylist(playlistId: \\"%s\\", trackId: \\"%s\\") { tracks { id } } }"}
+                                                """
+                                                .formatted(playlistId, track.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.addTrackToPlaylist.tracks.length()", is(1)));
+
+        mvc.perform(
+                        post("/graphql")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                                {"query":"query { playlists { id name tracks { id } } }"}
+                                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.playlists[0].id", is(playlistId)))
+                .andExpect(jsonPath("$.data.playlists[0].tracks[0].id", is(track.getId().toString())));
+
+        mvc.perform(
+                        post("/graphql")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                                {"query":"mutation { deletePlaylist(id: \\"%s\\") }"}
+                                                """
+                                                .formatted(playlistId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.deletePlaylist", is(true)));
     }
 
     @Test

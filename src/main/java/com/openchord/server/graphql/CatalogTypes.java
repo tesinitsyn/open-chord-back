@@ -6,6 +6,7 @@ import com.openchord.server.catalog.LyricLine;
 import com.openchord.server.catalog.Track;
 import com.openchord.server.config.OpenChordProperties;
 import com.openchord.server.playback.PlaybackEvent;
+import com.openchord.server.playlist.Playlist;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -114,6 +115,33 @@ public final class CatalogTypes {
                     artworkUrl,
                     ArtistView.from(album.getArtist()),
                     album.getTracks().stream().map(track -> TrackView.from(track, properties)).toList());
+        }
+    }
+
+    /** Public playlist projection with tracks in the user's explicit order. */
+    public record PlaylistView(
+            UUID id,
+            String name,
+            String description,
+            String artworkUrl,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt,
+            List<TrackView> tracks) {
+        public static PlaylistView from(Playlist playlist, OpenChordProperties properties) {
+            return new PlaylistView(
+                    playlist.getId(),
+                    playlist.getName(),
+                    playlist.getDescription(),
+                    playlist.getArtworkPath() == null
+                            ? null
+                            : properties.publicBaseUrl()
+                                    + "/media/playlist-artwork/"
+                                    + playlist.getId(),
+                    playlist.getCreatedAt().atOffset(ZoneOffset.UTC),
+                    playlist.getUpdatedAt().atOffset(ZoneOffset.UTC),
+                    playlist.getEntries().stream()
+                            .map(entry -> TrackView.from(entry.getTrack(), properties))
+                            .toList());
         }
     }
 
