@@ -6,6 +6,26 @@ media delivery.
 
 ## API
 
+### Portable `.openchord` archives
+
+The administration API implements draft format `0.1`:
+
+- `GET /api/admin/openchord/export` streams the complete library.
+- `GET /api/admin/openchord/export?scope=playlist&playlistId={uuid}` streams one
+  playlist and its complete dependency closure.
+- `GET /api/admin/openchord/playlists` lists playlist export choices.
+- `POST /api/admin/openchord/import` accepts a multipart field named `archive`.
+
+Exports contain the server's current managed audio as `playable` renditions.
+Legacy imports may already have transcoded their original source, so the server
+does not incorrectly claim those bytes are `original`. Imports verify normalized
+ZIP paths, entry and archive limits, byte lengths, and SHA-256 digests before
+committing catalog entities.
+
+The current database has one album artist and does not persist arbitrary credit
+roles yet. It imports the `album-artist` or primary credit as the catalog owner;
+the archive format itself remains richer than this first implementation.
+
 - `GET /admin/` — separate React admin for uploading tracks, artwork and synchronized lyrics.
 - `POST /api/admin/imports/analyze` — stage an album folder and inspect embedded metadata.
 - `POST /api/admin/imports/{id}/commit` — import the reviewed album; FLAC/WAV/AIFF sources become ALAC.
