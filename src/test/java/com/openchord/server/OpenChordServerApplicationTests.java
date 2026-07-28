@@ -1,8 +1,12 @@
 package com.openchord.server;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -18,8 +22,13 @@ import com.openchord.server.catalog.LyricLine;
 import com.openchord.server.catalog.Track;
 import com.openchord.server.playlist.PlaylistRepository;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +40,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.mock.web.MockMultipartFile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -215,9 +225,84 @@ class OpenChordServerApplicationTests {
     }
 
     @Test
+    void exportsPortableOpenChordArchive() throws Exception {
+        byte[] archive = exportArchive();
+
+        Map<String, byte[]> entries = unzip(archive);
+        assertNotNull(entries.get("manifest.json"));
+        assertNotNull(entries.get("catalog/artists.jsonl"));
+        assertNotNull(entries.get("catalog/albums.jsonl"));
+        assertNotNull(entries.get("catalog/tracks.jsonl"));
+        assertNotNull(entries.get("catalog/assets.jsonl"));
+        assertTrue(new String(entries.get("manifest.json")).contains("\"format\":\"openchord\""));
+        assertTrue(new String(entries.get("catalog/tracks.jsonl")).contains("\"purpose\":\"playable\""));
+        assertEquals(
+                1,
+                entries.keySet().stream()
+                        .filter(path -> path.startsWith("assets/sha256/"))
+                        .count());
+    }
+
+    @Test
+    void exportedArchiveRestoresCatalogAndMedia() throws Exception {
+        byte[] archive = exportArchive();
+        playlists.deleteAll();
+        albums.deleteAll();
+        artists.deleteAll();
+
+        MockMultipartFile upload =
+                new MockMultipartFile(
+                        "archive",
+                        "library.openchord",
+                        "application/vnd.openchord.archive+zip",
+                        archive);
+        mvc.perform(multipart("/api/admin/openchord/import").file(upload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.albums", is(1)))
+                .andExpect(jsonPath("$.tracks", is(1)))
+                .andExpect(jsonPath("$.playlists", is(0)))
+                .andExpect(jsonPath("$.skippedAlbums", is(0)));
+
+        Album restored = albums.findAllDetailed().getFirst();
+        assertEquals("Afterglow", restored.getTitle());
+        assertEquals("Night Drive", restored.getTracks().getFirst().getTitle());
+        assertTrue(
+                Files.exists(
+                        Path.of(System.getProperty("java.io.tmpdir"), "openchord-test-media")
+                                .resolve(restored.getTracks().getFirst().getAudioPath())));
+    }
+
+    @Test
     void healthReportsReady() throws Exception {
         mvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", is("UP")));
+    }
+
+    private static Map<String, byte[]> unzip(byte[] archive) throws Exception {
+        Map<String, byte[]> entries = new HashMap<>();
+        try (ZipInputStream input = new ZipInputStream(new ByteArrayInputStream(archive))) {
+            ZipEntry entry;
+            while ((entry = input.getNextEntry()) != null) {
+                entries.put(entry.getName(), input.readAllBytes());
+            }
+        }
+        return entries;
+    }
+
+    private byte[] exportArchive() throws Exception {
+        MvcResult pending =
+                mvc.perform(get("/api/admin/openchord/export"))
+                        .andExpect(request().asyncStarted())
+                        .andReturn();
+        return mvc.perform(asyncDispatch(pending))
+                .andExpect(status().isOk())
+                .andExpect(
+                        content()
+                                .contentType(
+                                        "application/vnd.openchord.archive+zip"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
     }
 }
